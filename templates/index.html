@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>토양 정보 조회</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .result-box {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">토양 정보 조회</h1>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="input-group mb-3">
+                    <input type="text" id="address" class="form-control" placeholder="주소를 입력하세요">
+                    <button class="btn btn-primary" onclick="searchSoilInfo()">검색</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <div id="addressInfo" class="alert alert-info d-none" role="alert">
+            <!-- 주소 매칭 정보가 표시될 영역 -->
+        </div>
+
+        <div id="resultBox" class="result-box">
+            <h3>토양 검사 세부내용</h3>
+            <table class="table">
+                <tbody>
+                    <tr><td>검사일자</td><td id="testDate"></td></tr>
+                    <tr><td>검사유형</td><td id="examType"></td></tr>
+                    <tr><td>주소</td><td id="soilAddress"></td></tr>
+                    <tr><td>pH(산도)</td><td id="pH"></td></tr>
+                    <tr><td>유기물(OM)</td><td id="om"></td></tr>
+                    <tr><td>유효인산(P2O5)</td><td id="p2o5"></td></tr>
+                    <tr><td>칼륨(K)</td><td id="k"></td></tr>
+                    <tr><td>칼슘(Ca)</td><td id="ca"></td></tr>
+                    <tr><td>마그네슘(Mg)</td><td id="mg"></td></tr>
+                    <tr><td>전기전도도(EC)</td><td id="ec"></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function searchSoilInfo() {
+            const address = document.getElementById('address').value;
+            if (!address) {
+                alert('주소를 입력해주세요.');
+                return;
+            }
+
+            document.getElementById('loading').classList.remove('d-none');
+            document.getElementById('resultBox').style.display = 'none';
+            document.getElementById('addressInfo').classList.add('d-none');
+
+            try {
+                const response = await fetch('/soil-info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ address: address })
+                });
+
+                const result = await response.json();
+                
+                if (!result.success) {
+                    alert(result.message);  // 서버에서 전달받은 에러 메시지를 표시
+                    return;
+                }
+                
+                // 정확한 매칭이 아닐 경우 알림
+                if (result.exact_match === false) {
+                    alert("해당 주소와 완전 매칭되는 토양 정보가 없어 가장 가까운 지번의 토양 정보를 보여드립니다.");
+                }
+
+                // 결과 데이터 표시
+                const data = result.data;
+                document.getElementById('testDate').textContent = data.test_date;
+                document.getElementById('examType').textContent = data.exam_type;
+                document.getElementById('soilAddress').textContent = data.address;
+                document.getElementById('pH').textContent = data.pH.toFixed(1);
+                document.getElementById('om').textContent = `${data.OM.toFixed(1)} g/kg`;
+                document.getElementById('p2o5').textContent = `${data.P2O5.toFixed(1)} mg/kg`;
+                document.getElementById('k').textContent = `${data.K.toFixed(3)} cmol/kg`;
+                document.getElementById('ca').textContent = `${data.Ca.toFixed(1)} cmol/kg`;
+                document.getElementById('mg').textContent = `${data.Mg.toFixed(3)} cmol/kg`;
+                document.getElementById('ec').textContent = `${data.EC.toFixed(3)} dS/m`;
+                
+                document.getElementById('resultBox').style.display = 'block';
+            } catch (error) {
+                alert('오류가 발생했습니다.');
+                console.error(error);
+            } finally {
+                document.getElementById('loading').classList.add('d-none');
+            }
+        }
+    </script>
+</body>
+</html> 
